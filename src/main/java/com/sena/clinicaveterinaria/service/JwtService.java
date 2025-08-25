@@ -3,13 +3,15 @@ package com.sena.clinicaveterinaria.service;
 import com.sena.clinicaveterinaria.model.Usuario;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 
 @Service
 public class JwtService {
-    private final String SECRET = "clave_secreta_segura";
+    @Value("${jwt.secret}")
+    private String secret;
 
     public String generateToken(Usuario usuario) {
         return Jwts.builder()
@@ -17,7 +19,7 @@ public class JwtService {
                 .claim("rol", usuario.getRol())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 86400000)) // 1 día
-                .signWith(SignatureAlgorithm.HS256, SECRET)
+                .signWith(SignatureAlgorithm.HS256, secret)
                 .compact();
     }
 }
