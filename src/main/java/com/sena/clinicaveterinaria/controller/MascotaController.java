@@ -28,8 +28,12 @@ public class MascotaController {
     }
 
     // src/main/java/com/sena/clinicaveterinaria/controller/MascotaController.java
-    @PostMapping
-    public Mascota guardar(@RequestBody Mascota mascota) {
+
+    // java
+    @PutMapping("/{id}")
+    public Mascota actualizar(@PathVariable Integer id, @RequestBody Mascota mascota) {
+        mascota.setId(id);
         return service.guardar(mascota);
     }
+
 }

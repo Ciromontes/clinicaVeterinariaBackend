@@ -26,10 +26,7 @@ public class CitaController {
         return service.buscarPorId(id);
     }
 
-    @PostMapping
-    public Cita guardar(@RequestBody Cita cita) {
-        return service.guardar(cita);
-    }
+
 
     @PutMapping("/{id}")
     public Cita actualizar(@PathVariable Integer id, @RequestBody Cita cita) {
@@ -40,5 +37,10 @@ public class CitaController {
     @DeleteMapping("/{id}")
     public void eliminar(@PathVariable Integer id) {
         service.eliminar(id);
+    }
+
+    @PostMapping
+    public Cita guardar(@RequestBody Cita cita) {
+        return service.guardar(cita);
     }
 }
