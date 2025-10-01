@@ -1,4 +1,5 @@
 
+// src/main/java/com/sena/clinicaveterinaria/model/Usuario.java
 package com.sena.clinicaveterinaria.model;
 
 import jakarta.persistence.*;
@@ -26,4 +27,11 @@ public class Usuario {
 
     @Column(nullable = false)
     private Boolean activo = true;
+
+    // ✅ AGREGAR estos campos para las relaciones
+    @Column(name = "id_cliente")
+    private Integer idCliente;
+
+    @Column(name = "id_veterinario")
+    private Integer idVeterinario;
 }

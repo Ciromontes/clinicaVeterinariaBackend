@@ -1,7 +1,9 @@
+// src/main/java/com/sena/clinicaveterinaria/controller/CitaController.java
 package com.sena.clinicaveterinaria.controller;
 
 import com.sena.clinicaveterinaria.model.Cita;
 import com.sena.clinicaveterinaria.service.CitaService;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,8 +28,6 @@ public class CitaController {
         return service.buscarPorId(id);
     }
 
-
-
     @PutMapping("/{id}")
     public Cita actualizar(@PathVariable Integer id, @RequestBody Cita cita) {
         cita.setId(id);
@@ -42,5 +42,18 @@ public class CitaController {
     @PostMapping
     public Cita guardar(@RequestBody Cita cita) {
         return service.guardar(cita);
+    }
+
+    // ✅ AGREGAR estos nuevos endpoints
+    @GetMapping("/mis-citas")
+    public List<Cita> getMisCitas(Authentication authentication) {
+        String username = authentication.getName();
+        return service.findCitasByUsuarioEmail(username);
+    }
+
+    @PostMapping("/agendar")
+    public Cita agendarCita(@RequestBody Cita cita, Authentication authentication) {
+        String username = authentication.getName();
+        return service.agendarCita(cita, username);
     }
 }

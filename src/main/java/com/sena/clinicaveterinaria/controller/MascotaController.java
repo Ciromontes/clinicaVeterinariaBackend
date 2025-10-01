@@ -3,6 +3,7 @@ package com.sena.clinicaveterinaria.controller;
 
 import com.sena.clinicaveterinaria.model.Mascota;
 import com.sena.clinicaveterinaria.service.MascotaService;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,13 +28,21 @@ public class MascotaController {
         return service.buscarPorId(id);
     }
 
+    // Nuevo endpoint para obtener las mascotas del cliente logueado
+    @GetMapping("/mias")
+    public List<Mascota> getMisMascotas(Authentication authentication) {
+        String username = authentication.getName();
+        return service.findMascotasByUsuarioEmail(username);
+    }
+
     // src/main/java/com/sena/clinicaveterinaria/controller/MascotaController.java
 
     // java
     @PutMapping("/{id}")
     public Mascota actualizar(@PathVariable Integer id, @RequestBody Mascota mascota) {
-        mascota.setId(id);
+        mascota.setIdMascota(id);
         return service.guardar(mascota);
     }
+
 
 }

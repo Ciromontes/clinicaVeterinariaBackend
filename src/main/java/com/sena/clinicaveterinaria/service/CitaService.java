@@ -8,4 +8,7 @@ public interface CitaService {
     Cita buscarPorId(Integer id);
     Cita guardar(Cita cita);
     void eliminar(Integer id);
+    // ✅ AGREGAR estos métodos para el MVP
+    List<Cita> findCitasByUsuarioEmail(String email);
+    Cita agendarCita(Cita cita, String emailUsuario);
 }

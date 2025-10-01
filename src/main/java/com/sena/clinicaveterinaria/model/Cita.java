@@ -1,3 +1,4 @@
+// src/main/java/com/sena/clinicaveterinaria/model/Cita.java
 package com.sena.clinicaveterinaria.model;
 
 import jakarta.persistence.*;
@@ -12,7 +13,7 @@ public class Cita {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID_Cita")
-    private Integer id;
+    private Integer id; // ✅ Mantener como 'id' para consistencia
 
     @Column(name = "Fecha_Cita", nullable = false)
     private LocalDate fechaCita;
@@ -21,13 +22,13 @@ public class Cita {
     private LocalTime horaCita;
 
     @Column(name = "Duracion_Minutos")
-    private Integer duracionMinutos;
+    private Integer duracionMinutos = 30; // ✅ Valor por defecto
 
     @Column(name = "Motivo", nullable = false, length = 200)
     private String motivo;
 
     @Column(name = "Estado_Cita")
-    private String estadoCita;
+    private String estadoCita = "Programada"; // ✅ Valor por defecto
 
     @Column(name = "Observaciones")
     private String observaciones;
