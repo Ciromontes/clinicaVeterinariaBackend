@@ -9,5 +9,8 @@ import java.util.List;
 
 @Repository
 public interface MascotaRepository extends JpaRepository<Mascota, Integer> {
-    List<Mascota> findByIdCliente(Integer idCliente);
+
+    // ✅ Método correcto: Spring Data JPA lo genera automáticamente
+    // basándose en la relación: Mascota → Cliente (campo "cliente" en Mascota)
+    List<Mascota> findByClienteIdCliente(Integer idCliente);
 }

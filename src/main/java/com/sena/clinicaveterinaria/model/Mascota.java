@@ -3,43 +3,67 @@ package com.sena.clinicaveterinaria.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
-@Data
 @Entity
 @Table(name = "mascota")
+@Data
 public class Mascota {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID_Mascota")
-    private Integer idMascota;;
+    private Integer idMascota;
 
-    @Column(name = "Nombre")
+    @Column(nullable = false, length = 50)
     private String nombre;
 
-    @Column(name = "Especie")
-    private String especie;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Especie especie;
 
-    @Column(name = "Raza")
+    @Column(length = 50)
     private String raza;
 
-    @Column(name = "Edad")
     private Integer edad;
 
-    @Column(name = "Peso")
-    private Double peso;
+    @Column(precision = 5, scale = 2)
+    private BigDecimal peso;
 
-    @Column(name = "Color")
+    @Column(length = 50)
     private String color;
 
-    @Column(name = "Sexo")
-    private String sexo;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Sexo sexo;
 
     @Column(name = "Fecha_Registro")
-    private java.sql.Timestamp fechaRegistro;
+    private LocalDateTime fechaRegistro;
 
-    @Column(name = "Estado")
-    private String estado;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Estado estado = Estado.Activo;
 
-    @Column(name = "ID_Cliente")
-    private Integer idCliente;
+    // ✅ ESTA ES LA RELACIÓN QUE FALTABA
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ID_Cliente", nullable = false)
+    private Cliente cliente;
+
+    // Enums
+    public enum Especie {
+        Perro, Gato, Ave, Conejo, Hamster, Reptil, Otro
+    }
+
+    public enum Sexo {
+        Macho, Hembra
+    }
+
+    public enum Estado {
+        Activo, Inactivo, Fallecido
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        fechaRegistro = LocalDateTime.now();
+    }
 }

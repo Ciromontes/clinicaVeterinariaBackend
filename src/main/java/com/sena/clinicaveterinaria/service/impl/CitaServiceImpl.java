@@ -76,7 +76,7 @@ public class CitaServiceImpl implements CitaService {
 
         // Validar que la mascota pertenece al usuario
         Mascota mascota = mascotaService.buscarPorId(cita.getIdMascota());
-        if (mascota == null || !mascota.getIdCliente().equals(usuario.getIdCliente())) {
+        if (mascota == null || !mascota.getCliente().equals(usuario.getIdCliente())) {
             throw new RuntimeException("La mascota no pertenece al usuario");
         }
 

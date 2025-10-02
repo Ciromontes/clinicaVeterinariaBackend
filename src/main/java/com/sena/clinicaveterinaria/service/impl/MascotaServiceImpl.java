@@ -60,7 +60,7 @@ public class MascotaServiceImpl implements MascotaService {
             throw new RuntimeException("El usuario no tiene un cliente asociado");
         }
 
-        List<Mascota> mascotas = repository.findByIdCliente(usuario.getIdCliente());
+        List<Mascota> mascotas = repository.findByClienteIdCliente(usuario.getIdCliente());
         System.out.println("🐕 Mascotas encontradas: " + (mascotas != null ? mascotas.size() : "0"));
 
         if (mascotas != null) {

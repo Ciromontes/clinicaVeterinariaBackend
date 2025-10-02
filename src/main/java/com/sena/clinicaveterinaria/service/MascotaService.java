@@ -9,6 +9,5 @@ public interface MascotaService {
     Mascota buscarPorId(Integer id);
     Mascota guardar(Mascota mascota);
     void eliminar(Integer id);
-    //List<Mascota> listarPorIdCliente(Integer idCliente); // nuevo
     List<Mascota> findMascotasByUsuarioEmail(String email);
 }
