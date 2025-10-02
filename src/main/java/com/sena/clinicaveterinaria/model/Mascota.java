@@ -1,6 +1,7 @@
 // src/main/java/com/sena/clinicaveterinaria/model/Mascota.java
 package com.sena.clinicaveterinaria.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
@@ -9,6 +10,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "mascota")
 @Data
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "cliente"})
 public class Mascota {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
