@@ -1,11 +1,14 @@
-// src/main/java/com/sena/clinicaveterinaria/config/JwtAuthenticationFilter.java
 package com.sena.clinicaveterinaria.config;
 
+import com.sena.clinicaveterinaria.model.Usuario;
+import com.sena.clinicaveterinaria.service.JwtService;
 import com.sena.clinicaveterinaria.service.UsuarioService;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,68 +16,88 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    @Value("${jwt.secret}")
-    private String secret;
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final UsuarioService usuarioService;
+    private final JwtService jwtService;
 
     public JwtAuthenticationFilter(UsuarioService usuarioService) {
         this.usuarioService = usuarioService;
+        this.jwtService = new JwtService();
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+
+        String requestPath = request.getRequestURI();
+        String method = request.getMethod();
+
+        // Log inicial de la petición
+        log.debug("🔍 Filtro JWT - Procesando: {} {}", method, requestPath);
+
+        String authHeader = request.getHeader("Authorization");
+
+        // Permitir endpoints públicos
+        if (requestPath.equals("/api/auth/login") || !requestPath.startsWith("/api/")) {
+            log.debug("✅ Endpoint público permitido: {}", requestPath);
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Validar presencia de token
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("⚠️ Token ausente o formato inválido en: {} {}", method, requestPath);
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         try {
-            String header = request.getHeader("Authorization");
+            String token = authHeader.substring(7);
+            String tokenPreview = token.length() > 20
+                    ? token.substring(0, 10) + "..." + token.substring(token.length() - 10)
+                    : "***";
 
-            if (header == null || !header.startsWith("Bearer ")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
+            log.debug("🔑 Token recibido: {}", tokenPreview);
 
-            String token = header.substring(7);
+            // Extraer información del token
+            String email = jwtService.extractEmail(token);
+            String rol = jwtService.extractRol(token);
 
-            // ✅ NUEVO: Crear SecretKey desde el String
-            SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+            log.debug("👤 Usuario autenticado: {} | Rol: {}", email, rol);
 
-            // ✅ NUEVO: API actualizada para JJWT 0.12.x
-            Claims claims = Jwts.parser()
-                    .verifyWith(key)  // ✅ Cambio principal
-                    .build()
-                    .parseSignedClaims(token)  // ✅ Cambio principal
-                    .getPayload();
+            // Buscar usuario en BD
+            Usuario usuario = usuarioService.buscarPorEmail(email);
 
-            String username = claims.getSubject();
-            String rol = claims.get("rol", String.class);
+            if (usuario != null && usuario.getActivo()) {
+                log.debug("✅ Usuario válido y activo: {}", email);
 
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                // Crear autenticación
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                username,
+                                email,
                                 null,
                                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + rol))
                         );
 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                log.info("🔐 Autenticación exitosa: {} accediendo a {} {}", email, method, requestPath);
+            } else {
+                log.warn("⚠️ Usuario inválido o inactivo: {}", email);
             }
 
         } catch (Exception e) {
-            logger.error("Error al procesar JWT: " + e.getMessage());
+            log.error("❌ Error procesando token: {}", e.getMessage());
+            log.debug("Stack trace:", e);
         }
 
         filterChain.doFilter(request, response);
