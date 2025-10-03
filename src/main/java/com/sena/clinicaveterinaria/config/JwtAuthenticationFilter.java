@@ -27,9 +27,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final UsuarioService usuarioService;
     private final JwtService jwtService;
 
-    public JwtAuthenticationFilter(UsuarioService usuarioService) {
+    // ✅ CORREGIDO: Inyectar JwtService en lugar de instanciarlo manualmente
+    public JwtAuthenticationFilter(UsuarioService usuarioService, JwtService jwtService) {
         this.usuarioService = usuarioService;
-        this.jwtService = new JwtService();
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -40,7 +41,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String requestPath = request.getRequestURI();
         String method = request.getMethod();
 
-        // Log inicial de la petición
         log.debug("🔍 Filtro JWT - Procesando: {} {}", method, requestPath);
 
         String authHeader = request.getHeader("Authorization");
@@ -90,7 +90,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                log.info("🔐 Autenticación exitosa: {} accediendo a {} {}", email, method, requestPath);
+                log.info("🔓 Autenticación exitosa: {} accediendo a {} {}", email, method, requestPath);
             } else {
                 log.warn("⚠️ Usuario inválido o inactivo: {}", email);
             }
