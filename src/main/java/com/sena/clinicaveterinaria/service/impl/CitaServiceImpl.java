@@ -12,8 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -59,11 +57,6 @@ public class CitaServiceImpl implements CitaService {
         log.debug("Servicio: Guardando cita - Mascota={}, Veterinario={}, Fecha={}",
                 cita.getIdMascota(), cita.getIdVeterinario(), cita.getFechaCita());
 
-        if (cita.getFechaRegistro() == null) {
-            cita.setFechaRegistro(LocalDateTime.now());
-            log.debug("Servicio: Asignada fecha de registro automática");
-        }
-
         Cita citaGuardada = citaRepository.save(cita);
         log.info("Servicio: Cita guardada exitosamente - ID={}", citaGuardada.getId());
         return citaGuardada;
@@ -95,7 +88,8 @@ public class CitaServiceImpl implements CitaService {
             throw new RuntimeException("Usuario no tiene cliente asociado");
         }
 
-        List<Mascota> mascotas = mascotaRepository.findByIdCliente(usuario.getIdCliente());
+        // ✅ CORREGIDO: Usar el método correcto del repositorio
+        List<Mascota> mascotas = mascotaRepository.findByClienteIdCliente(usuario.getIdCliente());
         log.debug("Servicio: Usuario {} tiene {} mascotas registradas", email, mascotas.size());
 
         if (mascotas.isEmpty()) {
@@ -129,13 +123,14 @@ public class CitaServiceImpl implements CitaService {
             throw new RuntimeException("Mascota no encontrada");
         }
 
-        if (!mascota.getIdCliente().equals(usuario.getIdCliente())) {
+        // ✅ CORREGIDO: Acceder al ID del cliente a través de la relación
+        if (!mascota.getCliente().getIdCliente().equals(usuario.getIdCliente())) {
             log.warn("Servicio: Usuario {} intenta agendar cita para mascota que no le pertenece (Mascota ID={})",
                     emailUsuario, cita.getIdMascota());
             throw new RuntimeException("La mascota no pertenece al usuario");
         }
 
-        cita.setFechaRegistro(LocalDateTime.now());
+        // ✅ REMOVIDO: fechaRegistro (no existe en el modelo Cita)
         cita.setEstadoCita("Programada");
 
         Cita citaAgendada = citaRepository.save(cita);

@@ -50,8 +50,8 @@ public class MascotaServiceImpl implements MascotaService {
 
     @Override
     public Mascota guardar(Mascota mascota) {
-        log.debug("Servicio: Guardando mascota - Nombre={}, Especie={}, Cliente={}",
-                mascota.getNombre(), mascota.getEspecie(), mascota.getIdCliente());
+        log.debug("Servicio: Guardando mascota - Nombre={}, Especie={}",
+                mascota.getNombre(), mascota.getEspecie());
 
         Mascota mascotaGuardada = mascotaRepository.save(mascota);
         log.info("Servicio: Mascota guardada exitosamente - ID={}, Nombre={}",
@@ -85,7 +85,8 @@ public class MascotaServiceImpl implements MascotaService {
             throw new RuntimeException("Usuario no tiene cliente asociado");
         }
 
-        List<Mascota> mascotas = mascotaRepository.findByIdCliente(usuario.getIdCliente());
+        // ✅ CORREGIDO: Usar el método correcto del repositorio
+        List<Mascota> mascotas = mascotaRepository.findByClienteIdCliente(usuario.getIdCliente());
         log.info("Servicio: {} mascotas encontradas para usuario {}", mascotas.size(), email);
 
         if (mascotas.isEmpty()) {
