@@ -1,72 +1,95 @@
-// src/main/java/com/sena/clinicaveterinaria/service/impl/MascotaServiceImpl.java
-// src/main/java/com/sena/clinicaveterinaria/service/impl/MascotaServiceImpl.java
 package com.sena.clinicaveterinaria.service.impl;
 
 import com.sena.clinicaveterinaria.model.Mascota;
 import com.sena.clinicaveterinaria.model.Usuario;
 import com.sena.clinicaveterinaria.repository.MascotaRepository;
+import com.sena.clinicaveterinaria.repository.UsuarioRepository;
 import com.sena.clinicaveterinaria.service.MascotaService;
-import com.sena.clinicaveterinaria.service.UsuarioService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional
 public class MascotaServiceImpl implements MascotaService {
-    private final MascotaRepository repository;
-    private final UsuarioService usuarioService; // dependencia inyectada
 
-    public MascotaServiceImpl(MascotaRepository repository, UsuarioService usuarioService) {
-        this.repository = repository;
-        this.usuarioService = usuarioService;
+    private static final Logger log = LoggerFactory.getLogger(MascotaServiceImpl.class);
+
+    private final MascotaRepository mascotaRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    public MascotaServiceImpl(MascotaRepository mascotaRepository,
+                              UsuarioRepository usuarioRepository) {
+        this.mascotaRepository = mascotaRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Override
     public List<Mascota> listar() {
-        return repository.findAll();
+        log.debug("Servicio: Listando todas las mascotas");
+        List<Mascota> mascotas = mascotaRepository.findAll();
+        log.debug("Servicio: {} mascotas encontradas en BD", mascotas.size());
+        return mascotas;
     }
 
     @Override
     public Mascota buscarPorId(Integer id) {
-        return repository.findById(id).orElse(null);
+        log.debug("Servicio: Buscando mascota con ID={}", id);
+        Mascota mascota = mascotaRepository.findById(id).orElse(null);
+        if (mascota != null) {
+            log.debug("Servicio: Mascota encontrada - ID={}, Nombre={}, Especie={}",
+                    id, mascota.getNombre(), mascota.getEspecie());
+        } else {
+            log.warn("Servicio: Mascota no encontrada con ID={}", id);
+        }
+        return mascota;
     }
 
     @Override
     public Mascota guardar(Mascota mascota) {
-        return repository.save(mascota);
+        log.debug("Servicio: Guardando mascota - Nombre={}, Especie={}, Cliente={}",
+                mascota.getNombre(), mascota.getEspecie(), mascota.getIdCliente());
+
+        Mascota mascotaGuardada = mascotaRepository.save(mascota);
+        log.info("Servicio: Mascota guardada exitosamente - ID={}, Nombre={}",
+                mascotaGuardada.getIdMascota(), mascotaGuardada.getNombre());
+        return mascotaGuardada;
     }
 
     @Override
     public void eliminar(Integer id) {
-        repository.deleteById(id);
+        log.debug("Servicio: Eliminando mascota ID={}", id);
+        if (!mascotaRepository.existsById(id)) {
+            log.warn("Servicio: Intento de eliminar mascota inexistente ID={}", id);
+            throw new RuntimeException("Mascota no encontrada con ID: " + id);
+        }
+        mascotaRepository.deleteById(id);
+        log.info("Servicio: Mascota eliminada exitosamente - ID={}", id);
     }
 
     @Override
     public List<Mascota> findMascotasByUsuarioEmail(String email) {
-        System.out.println("🔍 DEBUG: Buscando mascotas para: " + email);
+        log.debug("Servicio: Buscando mascotas del usuario: {}", email);
 
-        Usuario usuario = usuarioService.buscarPorEmail(email);
-        System.out.println("✅ Usuario encontrado: " + (usuario != null ? usuario.getNombre() : "NULL"));
-
+        Usuario usuario = usuarioRepository.findByEmail(email);
         if (usuario == null) {
-            System.out.println("❌ ERROR: Usuario no encontrado");
-            throw new RuntimeException("Usuario no encontrado: " + email);
+            log.warn("Servicio: Usuario no encontrado: {}", email);
+            throw new RuntimeException("Usuario no encontrado");
         }
-
-        System.out.println("📋 ID Cliente del usuario: " + usuario.getIdCliente());
 
         if (usuario.getIdCliente() == null) {
-            System.out.println("❌ ERROR: Usuario no tiene cliente asociado");
-            throw new RuntimeException("El usuario no tiene un cliente asociado");
+            log.warn("Servicio: Usuario {} no tiene cliente asociado", email);
+            throw new RuntimeException("Usuario no tiene cliente asociado");
         }
 
-        List<Mascota> mascotas = repository.findByClienteIdCliente(usuario.getIdCliente());
-        System.out.println("🐕 Mascotas encontradas: " + (mascotas != null ? mascotas.size() : "0"));
+        List<Mascota> mascotas = mascotaRepository.findByIdCliente(usuario.getIdCliente());
+        log.info("Servicio: {} mascotas encontradas para usuario {}", mascotas.size(), email);
 
-        if (mascotas != null) {
-            for (Mascota mascota : mascotas) {
-                System.out.println("   - " + mascota.getNombre() + " (ID: " + mascota.getIdMascota() + ")");
-            }
+        if (mascotas.isEmpty()) {
+            log.debug("Servicio: Usuario {} no tiene mascotas registradas", email);
         }
 
         return mascotas;

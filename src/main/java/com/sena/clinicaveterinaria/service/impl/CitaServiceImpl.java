@@ -1,85 +1,147 @@
-// src/main/java/com/sena/clinicaveterinaria/service/impl/CitaServiceImpl.java
 package com.sena.clinicaveterinaria.service.impl;
 
 import com.sena.clinicaveterinaria.model.Cita;
 import com.sena.clinicaveterinaria.model.Mascota;
 import com.sena.clinicaveterinaria.model.Usuario;
 import com.sena.clinicaveterinaria.repository.CitaRepository;
+import com.sena.clinicaveterinaria.repository.MascotaRepository;
+import com.sena.clinicaveterinaria.repository.UsuarioRepository;
 import com.sena.clinicaveterinaria.service.CitaService;
-import com.sena.clinicaveterinaria.service.MascotaService;
-import com.sena.clinicaveterinaria.service.UsuarioService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class CitaServiceImpl implements CitaService {
-    private final CitaRepository repository;
-    private final UsuarioService usuarioService;
-    private final MascotaService mascotaService;
 
-    public CitaServiceImpl(CitaRepository repository, UsuarioService usuarioService, MascotaService mascotaService) {
-        this.repository = repository;
-        this.usuarioService = usuarioService;
-        this.mascotaService = mascotaService;
+    private static final Logger log = LoggerFactory.getLogger(CitaServiceImpl.class);
+
+    private final CitaRepository citaRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final MascotaRepository mascotaRepository;
+
+    public CitaServiceImpl(CitaRepository citaRepository,
+                           UsuarioRepository usuarioRepository,
+                           MascotaRepository mascotaRepository) {
+        this.citaRepository = citaRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.mascotaRepository = mascotaRepository;
     }
 
     @Override
     public List<Cita> listar() {
-        return repository.findAll();
+        log.debug("Servicio: Listando todas las citas");
+        List<Cita> citas = citaRepository.findAll();
+        log.debug("Servicio: {} citas encontradas en BD", citas.size());
+        return citas;
     }
 
     @Override
     public Cita buscarPorId(Integer id) {
-        return repository.findById(id).orElse(null);
+        log.debug("Servicio: Buscando cita con ID={}", id);
+        Cita cita = citaRepository.findById(id).orElse(null);
+        if (cita != null) {
+            log.debug("Servicio: Cita encontrada - ID={}, Estado={}", id, cita.getEstadoCita());
+        } else {
+            log.warn("Servicio: Cita no encontrada con ID={}", id);
+        }
+        return cita;
     }
 
     @Override
     public Cita guardar(Cita cita) {
-        return repository.save(cita);
+        log.debug("Servicio: Guardando cita - Mascota={}, Veterinario={}, Fecha={}",
+                cita.getIdMascota(), cita.getIdVeterinario(), cita.getFechaCita());
+
+        if (cita.getFechaRegistro() == null) {
+            cita.setFechaRegistro(LocalDateTime.now());
+            log.debug("Servicio: Asignada fecha de registro automática");
+        }
+
+        Cita citaGuardada = citaRepository.save(cita);
+        log.info("Servicio: Cita guardada exitosamente - ID={}", citaGuardada.getId());
+        return citaGuardada;
     }
 
     @Override
     public void eliminar(Integer id) {
-        repository.deleteById(id);
+        log.debug("Servicio: Eliminando cita ID={}", id);
+        if (!citaRepository.existsById(id)) {
+            log.warn("Servicio: Intento de eliminar cita inexistente ID={}", id);
+            throw new RuntimeException("Cita no encontrada con ID: " + id);
+        }
+        citaRepository.deleteById(id);
+        log.info("Servicio: Cita eliminada exitosamente - ID={}", id);
     }
 
-    // ✅ IMPLEMENTAR métodos nuevos
     @Override
     public List<Cita> findCitasByUsuarioEmail(String email) {
-        Usuario usuario = usuarioService.buscarPorEmail(email);
-        if (usuario == null || usuario.getIdCliente() == null) {
+        log.debug("Servicio: Buscando citas del usuario: {}", email);
+
+        Usuario usuario = usuarioRepository.findByEmail(email);
+        if (usuario == null) {
+            log.warn("Servicio: Usuario no encontrado: {}", email);
+            throw new RuntimeException("Usuario no encontrado");
+        }
+
+        if (usuario.getIdCliente() == null) {
+            log.warn("Servicio: Usuario {} no tiene cliente asociado", email);
             throw new RuntimeException("Usuario no tiene cliente asociado");
         }
 
-        // Obtener mascotas del cliente
-        List<Mascota> mascotas = mascotaService.findMascotasByUsuarioEmail(email);
-        List<Integer> mascotaIds = mascotas.stream()
-                .map(Mascota::getIdMascota)
-                .collect(Collectors.toList());
+        List<Mascota> mascotas = mascotaRepository.findByIdCliente(usuario.getIdCliente());
+        log.debug("Servicio: Usuario {} tiene {} mascotas registradas", email, mascotas.size());
 
-        if (mascotaIds.isEmpty()) {
-            return List.of(); // Retornar lista vacía si no tiene mascotas
+        if (mascotas.isEmpty()) {
+            log.debug("Servicio: No se encontraron mascotas para cliente ID={}", usuario.getIdCliente());
+            return List.of();
         }
 
-        // Buscar citas de esas mascotas
-        return repository.findByIdMascotaIn(mascotaIds);
+        List<Integer> mascotaIds = mascotas.stream()
+                .map(Mascota::getIdMascota)
+                .toList();
+
+        List<Cita> citas = citaRepository.findByIdMascotaIn(mascotaIds);
+        log.info("Servicio: {} citas encontradas para usuario {}", citas.size(), email);
+
+        return citas;
     }
 
     @Override
     public Cita agendarCita(Cita cita, String emailUsuario) {
-        Usuario usuario = usuarioService.buscarPorEmail(emailUsuario);
+        log.debug("Servicio: Agendando cita para usuario: {}", emailUsuario);
+
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario);
         if (usuario == null || usuario.getIdCliente() == null) {
-            throw new RuntimeException("Usuario no puede agendar citas");
+            log.warn("Servicio: Usuario {} no válido para agendar cita", emailUsuario);
+            throw new RuntimeException("Usuario no autorizado para agendar citas");
         }
 
-        // Validar que la mascota pertenece al usuario
-        Mascota mascota = mascotaService.buscarPorId(cita.getIdMascota());
-        if (mascota == null || !mascota.getCliente().equals(usuario.getIdCliente())) {
+        Mascota mascota = mascotaRepository.findById(cita.getIdMascota()).orElse(null);
+        if (mascota == null) {
+            log.warn("Servicio: Mascota ID={} no encontrada", cita.getIdMascota());
+            throw new RuntimeException("Mascota no encontrada");
+        }
+
+        if (!mascota.getIdCliente().equals(usuario.getIdCliente())) {
+            log.warn("Servicio: Usuario {} intenta agendar cita para mascota que no le pertenece (Mascota ID={})",
+                    emailUsuario, cita.getIdMascota());
             throw new RuntimeException("La mascota no pertenece al usuario");
         }
 
-        return repository.save(cita);
+        cita.setFechaRegistro(LocalDateTime.now());
+        cita.setEstadoCita("Programada");
+
+        Cita citaAgendada = citaRepository.save(cita);
+        log.info("Servicio: Cita agendada exitosamente - ID={}, Usuario={}, Mascota={}, Fecha={}",
+                citaAgendada.getId(), emailUsuario, mascota.getNombre(), cita.getFechaCita());
+
+        return citaAgendada;
     }
 }
