@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -88,7 +89,6 @@ public class CitaServiceImpl implements CitaService {
             throw new RuntimeException("Usuario no tiene cliente asociado");
         }
 
-        // ✅ CORREGIDO: Usar el método correcto del repositorio
         List<Mascota> mascotas = mascotaRepository.findByClienteIdCliente(usuario.getIdCliente());
         log.debug("Servicio: Usuario {} tiene {} mascotas registradas", email, mascotas.size());
 
@@ -123,14 +123,12 @@ public class CitaServiceImpl implements CitaService {
             throw new RuntimeException("Mascota no encontrada");
         }
 
-        // ✅ CORREGIDO: Acceder al ID del cliente a través de la relación
         if (!mascota.getCliente().getIdCliente().equals(usuario.getIdCliente())) {
             log.warn("Servicio: Usuario {} intenta agendar cita para mascota que no le pertenece (Mascota ID={})",
                     emailUsuario, cita.getIdMascota());
             throw new RuntimeException("La mascota no pertenece al usuario");
         }
 
-        // ✅ REMOVIDO: fechaRegistro (no existe en el modelo Cita)
         cita.setEstadoCita("Programada");
 
         Cita citaAgendada = citaRepository.save(cita);
@@ -138,5 +136,70 @@ public class CitaServiceImpl implements CitaService {
                 citaAgendada.getId(), emailUsuario, mascota.getNombre(), cita.getFechaCita());
 
         return citaAgendada;
+    }
+
+    // ✅ NUEVO MÉTODO: Obtener citas del día para veterinario
+    @Override
+    public List<Cita> findCitasHoyByVeterinario(String emailVeterinario) {
+        log.debug("Servicio: Buscando citas del día para veterinario: {}", emailVeterinario);
+
+        Usuario usuario = usuarioRepository.findByEmail(emailVeterinario);
+        if (usuario == null) {
+            log.warn("Servicio: Veterinario no encontrado: {}", emailVeterinario);
+            throw new RuntimeException("Veterinario no encontrado");
+        }
+
+        if (usuario.getIdVeterinario() == null) {
+            log.warn("Servicio: Usuario {} no tiene perfil de veterinario", emailVeterinario);
+            throw new RuntimeException("Usuario no tiene perfil de veterinario");
+        }
+
+        LocalDate hoy = LocalDate.now();
+        List<Cita> citas = citaRepository.findByIdVeterinarioAndFechaCita(usuario.getIdVeterinario(), hoy);
+
+        log.info("Servicio: {} citas encontradas para veterinario {} en fecha {}",
+                citas.size(), emailVeterinario, hoy);
+
+        return citas;
+    }
+
+    // ✅ NUEVO MÉTODO: Actualizar estado de cita
+    @Override
+    public Cita actualizarEstado(Integer idCita, String nuevoEstado, String emailVeterinario) {
+        log.debug("Servicio: Actualizando estado de cita ID={} a '{}' por veterinario {}",
+                idCita, nuevoEstado, emailVeterinario);
+
+        Usuario usuario = usuarioRepository.findByEmail(emailVeterinario);
+        if (usuario == null || usuario.getIdVeterinario() == null) {
+            log.warn("Servicio: Veterinario no válido: {}", emailVeterinario);
+            throw new RuntimeException("Usuario no autorizado");
+        }
+
+        Cita cita = citaRepository.findById(idCita).orElse(null);
+        if (cita == null) {
+            log.warn("Servicio: Cita no encontrada con ID={}", idCita);
+            throw new RuntimeException("Cita no encontrada");
+        }
+
+        if (!cita.getIdVeterinario().equals(usuario.getIdVeterinario())) {
+            log.warn("Servicio: Veterinario {} intenta modificar cita que no le pertenece (Cita ID={})",
+                    emailVeterinario, idCita);
+            throw new RuntimeException("No puede modificar citas de otro veterinario");
+        }
+
+        // Validar transición de estado
+        if ("Completada".equals(nuevoEstado) && !"Programada".equals(cita.getEstadoCita())) {
+            log.warn("Servicio: Transición de estado inválida de '{}' a '{}' para cita ID={}",
+                    cita.getEstadoCita(), nuevoEstado, idCita);
+            throw new RuntimeException("Solo se pueden completar citas programadas");
+        }
+
+        cita.setEstadoCita(nuevoEstado);
+        Cita citaActualizada = citaRepository.save(cita);
+
+        log.info("Servicio: Estado de cita ID={} actualizado a '{}' por veterinario {}",
+                idCita, nuevoEstado, emailVeterinario);
+
+        return citaActualizada;
     }
 }
