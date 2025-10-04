@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/citas")
@@ -128,6 +129,51 @@ public class CitaController {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             log.error("Error al agendar cita para {}: {}", username, e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // ✅ NUEVO ENDPOINT: Obtener citas del día para veterinario
+    @GetMapping("/hoy")
+    public ResponseEntity<List<Cita>> getCitasHoy(Authentication authentication) {
+        String username = authentication.getName();
+        log.info("GET /api/citas/hoy - Veterinario: {}", username);
+
+        try {
+            List<Cita> citas = service.findCitasHoyByVeterinario(username);
+            log.info("Citas de hoy para veterinario {}: {} encontradas", username, citas.size());
+            return ResponseEntity.ok(citas);
+        } catch (RuntimeException e) {
+            log.warn("Validación fallida al obtener citas de hoy para {}: {}", username, e.getMessage());
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("Error al obtener citas de hoy para {}: {}", username, e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // ✅ NUEVO ENDPOINT: Actualizar estado de cita
+    @PutMapping("/{id}/estado")
+    public ResponseEntity<?> actualizarEstado(
+            @PathVariable Integer id,
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+
+        String username = authentication.getName();
+        String nuevoEstado = body.get("estado");
+
+        log.info("PUT /api/citas/{}/estado - Veterinario: {}, Nuevo estado: {}",
+                id, username, nuevoEstado);
+
+        try {
+            Cita citaActualizada = service.actualizarEstado(id, nuevoEstado, username);
+            log.info("Estado de cita ID={} actualizado exitosamente a '{}'", id, nuevoEstado);
+            return ResponseEntity.ok(citaActualizada);
+        } catch (RuntimeException e) {
+            log.warn("Validación fallida al actualizar estado de cita ID={}: {}", id, e.getMessage());
+            return ResponseEntity.status(403).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Error al actualizar estado de cita ID={}: {}", id, e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }

@@ -17,7 +17,6 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // ✅ Inyectamos el filtro JWT ya configurado con UsuarioService y JwtService
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
@@ -28,27 +27,24 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                // ✅ Activamos CORS con configuración personalizada
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        // ✅ Rutas públicas del frontend SPA
                         .requestMatchers("/", "/index.html", "/assets/**", "/static/**").permitAll()
-                        // ✅ Rutas públicas para login
                         .requestMatchers("/api/auth/**").permitAll()
-                        // ✅ Rutas protegidas
+                        // ✅ NUEVAS REGLAS PARA VETERINARIO
+                        .requestMatchers("/api/citas/hoy").hasAnyRole("VETERINARIO", "ADMIN")
+                        .requestMatchers("/api/citas/*/estado").hasAnyRole("VETERINARIO", "ADMIN")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                // ✅ Registramos el filtro JWT antes del filtro de autenticación por usuario
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // ✅ Configuración CORS para permitir peticiones desde el frontend en localhost
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
