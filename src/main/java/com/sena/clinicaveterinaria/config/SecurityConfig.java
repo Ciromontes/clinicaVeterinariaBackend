@@ -31,9 +31,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/index.html", "/assets/**", "/static/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        // ✅ NUEVAS REGLAS PARA VETERINARIO
                         .requestMatchers("/api/citas/hoy").hasAnyRole("VETERINARIO", "ADMIN")
                         .requestMatchers("/api/citas/*/estado").hasAnyRole("VETERINARIO", "ADMIN")
+                        // NUEVO: Historias clínicas solo para veterinarios y admin
+                        .requestMatchers("/api/historias/**").hasAnyRole("VETERINARIO", "ADMIN")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 )
