@@ -405,3 +405,121 @@ ALTER TABLE usuario ADD FOREIGN KEY (id_veterinario) REFERENCES veterinario(ID_V
 -- Actualizar datos existentes (ejemplo)
 UPDATE usuario SET id_cliente = 1 WHERE email = 'lucia.cliente@clinicaveterinaria.com';
 UPDATE usuario SET id_veterinario = 1 WHERE email = 'ana.vet@clinicaveterinaria.com';
+
+-- Asignar id_cliente a Juan Pérez (que es el dueño de Firulais)
+UPDATE usuario SET id_cliente = 1 WHERE email = 'juan.perez@email.com';
+
+-- Verificar que quedó asignado
+SELECT id, nombre, email, id_cliente FROM usuario WHERE email = 'juan.perez@email.com';
+
+-- =====================================================
+-- SCRIPT DE CORRECCIÓN: Veterinarios y Usuarios
+-- =====================================================
+
+-- 1. Insertar Ana como veterinaria
+INSERT INTO veterinario (
+    Nombre, 
+    Apellidos, 
+    Identificacion, 
+    Titulacion, 
+    Fecha_Titulacion, 
+    Telefono, 
+    Correo, 
+    Especialidad, 
+    Estado, 
+    Fecha_Registro
+) VALUES (
+    'Ana', 
+    'Veterinaria López', 
+    '11223344', 
+    'Médico Veterinario', 
+    '2021-03-10', 
+    '3001112233', 
+    'ana.vet@clinicaveterinaria.com', 
+    'Medicina General', 
+    'Activo', 
+    NOW()
+);
+
+-- 2. Actualizar usuario Ana con el ID del veterinario
+UPDATE usuario 
+SET id_veterinario = LAST_INSERT_ID()
+WHERE email = 'ana.vet@clinicaveterinaria.com';
+
+-- 3. Crear usuario para Juan Carlos Pérez
+INSERT INTO usuario (nombre, email, password, rol, activo, id_cliente, id_veterinario)
+VALUES (
+    'Dr. Juan Carlos Pérez',
+    'juan.perez@veterinaria.com',
+    'vet123',
+    'VETERINARIO',
+    1,
+    NULL,
+    1
+);
+
+-- 4. Crear usuario para María Elena Rodríguez
+INSERT INTO usuario (nombre, email, password, rol, activo, id_cliente, id_veterinario)
+VALUES (
+    'Dra. María Elena Rodríguez',
+    'maria.rodriguez@veterinaria.com',
+    'vet123',
+    'VETERINARIO',
+    1,
+    NULL,
+    2
+);
+
+-- 5. Crear citas de prueba para HOY (Ana - id_veterinario = 3)
+INSERT INTO cita (
+    Fecha_Cita, 
+    Hora_Cita, 
+    Duracion_Minutos, 
+    Motivo, 
+    Estado_Cita, 
+    ID_Mascota, 
+    ID_Veterinario
+) VALUES 
+(CURDATE(), '09:00:00', 30, 'Control de vacunas', 'Programada', 1, 3),
+(CURDATE(), '10:30:00', 30, 'Consulta general', 'Programada', 3, 3),
+(CURDATE(), '14:00:00', 45, 'Revisión post-operatoria', 'Programada', 5, 3);
+
+-- 6. Verificar todo
+SELECT 'USUARIOS VETERINARIOS:' AS Verificacion;
+SELECT id, nombre, email, rol, id_veterinario FROM usuario WHERE rol = 'VETERINARIO';
+
+SELECT 'CITAS DE HOY PARA ANA:' AS Verificacion;
+SELECT 
+    c.ID_Cita,
+    c.Hora_Cita,
+    c.Motivo,
+    c.Estado_Cita,
+    m.Nombre AS mascota
+FROM cita c
+JOIN mascota m ON c.ID_Mascota = m.ID_Mascota
+WHERE c.ID_Veterinario = 3 AND c.Fecha_Cita = CURDATE();
+
+
+-- =====================================================
+-- SCRIPT: Agregar ID_Veterinario a entradahistoria
+-- =====================================================
+
+USE clinicaveterinaria;
+
+-- Agregar columna ID_Veterinario
+ALTER TABLE entradahistoria 
+ADD COLUMN ID_Veterinario INT AFTER ID_Historia;
+
+-- Agregar índice para mejorar consultas
+ALTER TABLE entradahistoria 
+ADD INDEX idx_veterinario (ID_Veterinario);
+
+-- Agregar foreign key (opcional, asegura integridad referencial)
+ALTER TABLE entradahistoria
+ADD CONSTRAINT fk_entrada_veterinario 
+FOREIGN KEY (ID_Veterinario) REFERENCES veterinario(ID_Veterinario);
+
+-- Verificar estructura final
+DESCRIBE entradahistoria;
+
+SELECT 'Columna ID_Veterinario agregada exitosamente' AS Status;
