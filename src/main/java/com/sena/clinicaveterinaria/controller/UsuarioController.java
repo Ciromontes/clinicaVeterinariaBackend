@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/usuarios")
@@ -111,6 +112,68 @@ public class UsuarioController {
             }
         } catch (Exception e) {
             log.error("Error al buscar usuario por email {}: {}", email, e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // ========================================
+    // FASE 4: GESTIÓN DE USUARIOS (ADMIN)
+    // ========================================
+
+    /**
+     * Endpoint para activar/desactivar usuarios (solo ADMIN)
+     * PUT /api/usuarios/{id}/estado
+     * Body: {"activo": true/false}
+     */
+    @PutMapping("/{id}/estado")
+    public ResponseEntity<Usuario> cambiarEstado(
+            @PathVariable Integer id,
+            @RequestBody Map<String, Boolean> request) {
+
+        log.info("PUT /api/usuarios/{}/estado - Cambiando estado de usuario", id);
+
+        try {
+            // Extraer el valor del campo 'activo' del request
+            Boolean activo = request.get("activo");
+
+            if (activo == null) {
+                log.warn("Campo 'activo' no proporcionado en el request");
+                return ResponseEntity.badRequest().build();
+            }
+
+            log.debug("Cambiando estado a: {}", activo);
+
+            // Llamar al servicio para cambiar el estado
+            Usuario usuarioActualizado = service.cambiarEstado(id, activo);
+
+            log.info("Estado del usuario {} cambiado exitosamente a: {}",
+                    id, activo ? "ACTIVO" : "INACTIVO");
+
+            return ResponseEntity.ok(usuarioActualizado);
+
+        } catch (RuntimeException e) {
+            log.error("Error al cambiar estado del usuario ID={}: {}", id, e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            log.error("Error inesperado al cambiar estado del usuario ID={}: {}",
+                    id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * Endpoint para listar veterinarios activos (disponible para CLIENTES)
+     * GET /api/usuarios/veterinarios/activos
+     */
+    @GetMapping("/veterinarios/activos")
+    public ResponseEntity<List<Usuario>> listarVeterinariosActivos() {
+        log.info("GET /api/usuarios/veterinarios/activos - Listando veterinarios disponibles");
+        try {
+            List<Usuario> veterinarios = service.listarVeterinariosActivos();
+            log.info("Veterinarios activos encontrados: {}", veterinarios.size());
+            return ResponseEntity.ok(veterinarios);
+        } catch (Exception e) {
+            log.error("Error al listar veterinarios activos: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }

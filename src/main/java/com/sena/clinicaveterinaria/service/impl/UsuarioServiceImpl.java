@@ -77,4 +77,43 @@ public class UsuarioServiceImpl implements UsuarioService {
         }
         return usuario;
     }
+
+    // ========================================
+    // FASE 4: GESTIÓN DE USUARIOS (ADMIN)
+    // ========================================
+
+    @Override
+    public Usuario cambiarEstado(Integer id, Boolean activo) {
+        log.info("Servicio: Cambiando estado del usuario ID={} a: {}",
+                id, activo ? "ACTIVO" : "INACTIVO");
+
+        // Buscar usuario por ID
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.error("Servicio: Usuario no encontrado con ID={}", id);
+                    return new RuntimeException("Usuario no encontrado con ID: " + id);
+                });
+
+        log.debug("Servicio: Usuario encontrado - Email={}, Rol={}, Estado actual={}",
+                usuario.getEmail(), usuario.getRol(), usuario.getActivo());
+
+        // Actualizar campo activo
+        usuario.setActivo(activo);
+
+        // Guardar cambios
+        Usuario usuarioActualizado = usuarioRepository.save(usuario);
+
+        log.info("Servicio: Estado del usuario {} cambiado exitosamente. Email={}, Nuevo estado={}",
+                id, usuarioActualizado.getEmail(), activo ? "ACTIVO" : "INACTIVO");
+
+        return usuarioActualizado;
+    }
+
+    @Override
+    public List<Usuario> listarVeterinariosActivos() {
+        log.debug("Servicio: Listando veterinarios activos");
+        List<Usuario> veterinarios = usuarioRepository.findByRolAndActivo("VETERINARIO", true);
+        log.info("Servicio: {} veterinarios activos encontrados", veterinarios.size());
+        return veterinarios;
+    }
 }

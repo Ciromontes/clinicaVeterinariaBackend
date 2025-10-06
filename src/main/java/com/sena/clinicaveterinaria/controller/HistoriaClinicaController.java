@@ -111,4 +111,38 @@ public class HistoriaClinicaController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    /**
+     * ✅ NUEVO ENDPOINT: Obtiene el historial completo de una mascota
+     * incluyendo la historia clínica y todas sus entradas médicas.
+     * Disponible para CLIENTES (validando que la mascota les pertenezca).
+     *
+     * @param idMascota ID de la mascota
+     * @param authentication Usuario autenticado
+     * @return Historia clínica con lista de entradas médicas
+     */
+    @GetMapping("/mascota/{idMascota}/completo")
+    public ResponseEntity<?> getHistorialCompleto(
+            @PathVariable Integer idMascota,
+            Authentication authentication) {
+
+        String username = authentication.getName();
+        log.info("GET /api/historias/mascota/{}/completo - Usuario: {}", idMascota, username);
+
+        try {
+            // Obtener historia y entradas (con validación de pertenencia)
+            var historialCompleto = service.obtenerHistorialCompleto(idMascota, username);
+            log.info("Historial completo obtenido para mascota ID={}, Usuario={}",
+                    idMascota, username);
+            return ResponseEntity.ok(historialCompleto);
+        } catch (RuntimeException e) {
+            log.warn("Validación fallida al obtener historial de mascota {}: {}",
+                    idMascota, e.getMessage());
+            return ResponseEntity.status(403).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Error al obtener historial completo de mascota {}: {}",
+                    idMascota, e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 }
