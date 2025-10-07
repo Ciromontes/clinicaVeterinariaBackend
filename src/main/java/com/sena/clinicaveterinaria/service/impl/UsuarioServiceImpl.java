@@ -5,6 +5,8 @@ import com.sena.clinicaveterinaria.repository.UsuarioRepository;
 import com.sena.clinicaveterinaria.service.UsuarioService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -96,6 +98,25 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         log.debug("Servicio: Usuario encontrado - Email={}, Rol={}, Estado actual={}",
                 usuario.getEmail(), usuario.getRol(), usuario.getActivo());
+
+        // ⚠️ VALIDACIÓN 1: Evitar que un admin se auto-desactive
+        if (!activo && "ADMIN".equals(usuario.getRol())) {
+            // Obtener el usuario autenticado actual
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String emailActual = auth != null ? auth.getName() : null;
+
+            if (emailActual != null && emailActual.equals(usuario.getEmail())) {
+                log.warn("❌ Intento de auto-desactivación bloqueado para administrador: {}", emailActual);
+                throw new RuntimeException("No puedes desactivarte a ti mismo como administrador");
+            }
+
+            // ⚠️ VALIDACIÓN 2: Evitar desactivar al último admin activo
+            long adminActivos = usuarioRepository.countByRolAndActivo("ADMIN", true);
+            if (adminActivos <= 1) {
+                log.warn("❌ Intento de desactivar al último administrador activo bloqueado");
+                throw new RuntimeException("No se puede desactivar al único administrador activo del sistema");
+            }
+        }
 
         // Actualizar campo activo
         usuario.setActivo(activo);

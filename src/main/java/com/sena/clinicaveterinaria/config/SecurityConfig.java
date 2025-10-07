@@ -33,8 +33,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/citas/hoy").hasAnyRole("VETERINARIO", "ADMIN")
                         .requestMatchers("/api/citas/*/estado").hasAnyRole("VETERINARIO", "ADMIN")
-                        // NUEVO: Historias clínicas solo para veterinarios y admin
+                        // ✅ CLIENTES pueden ver el historial completo de sus mascotas
+                        .requestMatchers("/api/historias/mascota/*/completo").hasAnyRole("CLIENTE", "VETERINARIO", "ADMIN")
+                        // VETERINARIOS y ADMIN pueden agregar entradas médicas
                         .requestMatchers("/api/historias/**").hasAnyRole("VETERINARIO", "ADMIN")
+                        // ✅ ADMIN puede gestionar usuarios (activar/desactivar)
+                        .requestMatchers("/api/usuarios/*/estado").hasRole("ADMIN")
+                        .requestMatchers("/api/usuarios/**").hasAnyRole("ADMIN", "VETERINARIO", "CLIENTE")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 )
