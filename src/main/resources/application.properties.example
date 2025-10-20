@@ -1,16 +1,13 @@
 # Database Configuration
 spring.datasource.url=jdbc:mysql://localhost:3306/clinicaveterinaria
 spring.datasource.username=root
-spring.datasource.password=pontuclaveaqui
-spring.jpa.hibernate.ddl-auto=none
-spring.jpa.show-sql=false
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+spring.datasource.password=TU_PASSWORD_AQUI
 
 # Server Configuration
 server.port=8080
 
 # JWT Configuration
-jwt.secret=clavesecretamuyseguraylargacon32caracteres123
+jwt.secret=TU_JWT_SECRET_AQUI_MINIMO_32_CARACTERES
 
 # Path Matching
 spring.mvc.pathmatch.matching-strategy=ant_path_matcher
@@ -34,3 +31,13 @@ logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{3
 # logging.file.max-size=10MB
 # logging.file.max-history=30
 # logging.pattern.file=%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n
+
+# =================================================================
+# INSTRUCCIONES PARA CONFIGURAR:
+# =================================================================
+# 1. Copia este archivo y renómbralo a: application.properties
+# 2. Reemplaza TU_PASSWORD_AQUI con tu contraseña real de MySQL
+# 3. Genera un JWT secret seguro (mínimo 32 caracteres aleatorios)
+# 4. NUNCA subas el archivo application.properties a Git
+# =================================================================
+

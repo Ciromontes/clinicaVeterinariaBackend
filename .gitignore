@@ -1,33 +1,293 @@
-HELP.md
+# ================================================================
+# .gitignore para Spring Boot - Clínica Veterinaria
+# ================================================================
+# IMPORTANTE: Este archivo protege información sensible
+# Creado: 2025-01-20
+# ================================================================
+
+# ================================================================
+# 1. ARCHIVOS DE CONFIGURACIÓN SENSIBLES (CRÍTICO)
+# ================================================================
+# ⚠️ NUNCA subir archivos con contraseñas o secrets a Git
+
+# Archivos de propiedades con credenciales
+application.properties
+application-*.properties
+!application.properties.example
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Archivos de configuración personales
+application-dev.properties
+application-prod.properties
+application-local.properties
+
+# Archivos de secretos
+secrets.properties
+database.properties
+jwt.properties
+
+# ================================================================
+# 2. DIRECTORIOS DE BUILD Y COMPILACIÓN
+# ================================================================
+
+# Maven
 target/
-.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+gradle-app.setting
+.gradletasknamecache
 
-### IntelliJ IDEA ###
-.idea
+# ================================================================
+# 3. IDEs Y EDITORES
+# ================================================================
+
+# IntelliJ IDEA
+.idea/
 *.iws
 *.iml
 *.ipr
+out/
+.idea_modules/
+atlassian-ide-plugin.xml
 
-### NetBeans ###
+# Eclipse
+.classpath
+.project
+.settings/
+.metadata/
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.loadpath
+.recommenders
+
+# NetBeans
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
-### VS Code ###
+# VS Code
 .vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# ================================================================
+# 4. LOGS Y ARCHIVOS TEMPORALES
+# ================================================================
+
+# Logs de aplicación
+logs/
+*.log
+*.log.*
+spring.log
+application.log
+
+# Archivos temporales
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ================================================================
+# 5. BASE DE DATOS
+# ================================================================
+
+# Archivos de base de datos local
+*.db
+*.sqlite
+*.sqlite3
+*.h2.db
+*.mv.db
+*.trace.db
+
+# Backups de base de datos
+*.sql
+*.dump
+*.backup
+backup_*.sql
+backup_*.dump
+
+# Scripts de datos sensibles
+data/
+dumps/
+backups/
+
+# ================================================================
+# 6. ARCHIVOS DEL SISTEMA OPERATIVO
+# ================================================================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+
+# Linux
+*~
+.directory
+.Trash-*
+.nfs*
+
+# ================================================================
+# 7. DEPENDENCIAS Y MÓDULOS
+# ================================================================
+
+# Node modules (si usas frontend en el mismo repo)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# ================================================================
+# 8. ARCHIVOS DE TESTING
+# ================================================================
+
+# Reportes de cobertura
+coverage/
+*.coverage
+*.lcov
+.nyc_output/
+
+# Test reports
+test-results/
+junit/
+reports/
+
+# ================================================================
+# 9. CERTIFICADOS Y CLAVES
+# ================================================================
+
+# Certificados SSL/TLS
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+
+# Claves SSH
+id_rsa
+id_rsa.pub
+*.pub
+authorized_keys
+
+# ================================================================
+# 10. ARCHIVOS DE PRODUCCIÓN
+# ================================================================
+
+# Archivos JAR/WAR generados (descomenta si no quieres versionarlos)
+# *.jar
+# *.war
+# *.ear
+# *.zip
+# *.tar.gz
+# *.rar
+
+# ================================================================
+# 11. DOCKER (si aplica)
+# ================================================================
+.dockerignore
+docker-compose.override.yml
+.docker/
+
+# ================================================================
+# 12. ARCHIVOS DE DOCUMENTACIÓN TEMPORAL
+# ================================================================
+
+# Archivos temporales de documentación
+*.md.backup
+*.md~
+TODO_PERSONAL.md
+NOTAS_PRIVADAS.md
+
+# ================================================================
+# 13. OTROS ARCHIVOS SENSIBLES
+# ================================================================
+
+# Archivos con datos de prueba reales
+test-data/
+seed-data/
+import-data/
+
+# Scripts con contraseñas
+deploy.sh
+setup-prod.sh
+
+# Archivos de configuración de servidores
+nginx.conf
+apache.conf
+
+# ================================================================
+# NOTA IMPORTANTE PARA EL EQUIPO:
+# ================================================================
+# Si necesitas compartir configuración, usa archivos .example
+# Ejemplo: application.properties.example
+#
+# Para configuración local, crea:
+# - application-local.properties (gitignoreado)
+# - .env.local (gitignoreado)
+#
+# NUNCA commitees:
+# - Contraseñas reales
+# - JWT secrets
+# - API keys
+# - Tokens de acceso
+# ================================================================
+
