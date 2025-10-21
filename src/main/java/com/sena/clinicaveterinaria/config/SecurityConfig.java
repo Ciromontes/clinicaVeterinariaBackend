@@ -28,20 +28,31 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // DESHABILITAR formulario de login y logout por defecto
+                .formLogin(form -> form.disable())
+                .logout(logout -> logout.disable())
+                .httpBasic(httpBasic -> httpBasic.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/index.html", "/assets/**", "/static/**").permitAll()
+                        // Endpoints de actuator PRIMERO (máxima prioridad)
+                        .requestMatchers("/actuator/**").permitAll()
+                        // Endpoints de autenticación
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Endpoints de citas con roles específicos
                         .requestMatchers("/api/citas/hoy").hasAnyRole("VETERINARIO", "ADMIN")
                         .requestMatchers("/api/citas/*/estado").hasAnyRole("VETERINARIO", "ADMIN")
-                        // ✅ CLIENTES pueden ver el historial completo de sus mascotas
+                        // CLIENTES pueden ver el historial completo de sus mascotas
                         .requestMatchers("/api/historias/mascota/*/completo").hasAnyRole("CLIENTE", "VETERINARIO", "ADMIN")
                         // VETERINARIOS y ADMIN pueden agregar entradas médicas
                         .requestMatchers("/api/historias/**").hasAnyRole("VETERINARIO", "ADMIN")
-                        // ✅ ADMIN puede gestionar usuarios (activar/desactivar)
+                        // ADMIN puede gestionar usuarios (activar/desactivar)
                         .requestMatchers("/api/usuarios/*/estado").hasRole("ADMIN")
                         .requestMatchers("/api/usuarios/**").hasAnyRole("ADMIN", "VETERINARIO", "CLIENTE")
+                        // Todos los otros endpoints de API requieren autenticación
                         .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll()
+                        // Archivos estáticos y frontend SPA - SOLO RUTAS ESPECÍFICAS
+                        .requestMatchers("/", "/index.html", "/assets/**", "/static/**", "/*.js", "/*.css", "/vite.svg").permitAll()
+                        // Todo lo demás requiere autenticación (no redirigir a SPA)
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)

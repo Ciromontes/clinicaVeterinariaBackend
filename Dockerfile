@@ -15,10 +15,9 @@ WORKDIR /app
 
 # Copiar archivos de configuración de Maven primero (cache layers)
 COPY pom.xml .
-COPY .mvn/ .mvn/
 
 # Descargar dependencias (esta capa se cachea si pom.xml no cambia)
-RUN mvn dependency:go-offline -B
+RUN mvn dependency:go-offline -B || true
 
 # Copiar código fuente
 COPY src/ ./src/
@@ -57,9 +56,10 @@ USER spring:spring
 # Exponer puerto de la aplicación
 EXPOSE 8080
 
-# Health check
+# Health check (requiere wget)
+# Nota: Alpine JRE no trae wget por defecto, usamos sh alternativo
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+  CMD sh -c 'wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health 2>&1 || exit 1'
 
 # Variables de entorno por defecto (se sobrescriben con docker-compose)
 ENV SPRING_PROFILES_ACTIVE=prod
@@ -67,4 +67,3 @@ ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
 # Comando de inicio
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
-
