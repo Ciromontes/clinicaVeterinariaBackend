@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -51,7 +50,7 @@ public class HistoriaClinicaServiceImpl implements HistoriaClinicaService {
                     log.info("Servicio: Historia clínica no existe para mascota ID={}, creando nueva", idMascota);
                     HistoriaClinica nuevaHistoria = new HistoriaClinica();
                     nuevaHistoria.setIdMascota(idMascota);
-                    nuevaHistoria.setFechaCreacion(LocalDateTime.now());
+                    nuevaHistoria.setFechaCreacion(LocalDate.now());
                     return historiaRepository.save(nuevaHistoria);
                 });
 

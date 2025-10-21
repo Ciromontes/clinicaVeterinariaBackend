@@ -3,6 +3,7 @@ package com.sena.clinicaveterinaria.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "usuario")
@@ -22,10 +23,16 @@ public class Usuario {
     private String password;
 
     @Column(nullable = false)
-    private String rol; // "ADMIN", "VETERINARIO", "CLIENTE"
+    private String rol; // "ADMIN", "VETERINARIO", "RECEPCIONISTA", "CLIENTE"
 
     @Column(nullable = false)
     private Boolean activo = true;
+
+    @Column(name = "Intentos_Fallidos")
+    private Integer intentosFallidos = 0;
+
+    @Column(name = "Fecha_Bloqueo")
+    private LocalDateTime fechaBloqueo;
 
     // ✅ Relación con Cliente
     @Column(name = "id_cliente")

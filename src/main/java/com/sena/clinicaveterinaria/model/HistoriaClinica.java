@@ -2,7 +2,7 @@ package com.sena.clinicaveterinaria.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "historiaclinica")
@@ -15,7 +15,7 @@ public class HistoriaClinica {
     private Integer idHistoria;
 
     @Column(name = "Fecha_Creacion", nullable = false)
-    private LocalDateTime fechaCreacion;
+    private LocalDate fechaCreacion;
 
     @Column(name = "ID_Mascota", nullable = false)
     private Integer idMascota;
@@ -23,7 +23,7 @@ public class HistoriaClinica {
     @PrePersist
     protected void onCreate() {
         if (fechaCreacion == null) {
-            fechaCreacion = LocalDateTime.now();
+            fechaCreacion = LocalDate.now();
         }
     }
 }

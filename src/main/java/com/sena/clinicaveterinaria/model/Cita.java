@@ -4,6 +4,7 @@ package com.sena.clinicaveterinaria.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Data
@@ -32,6 +33,12 @@ public class Cita {
 
     @Column(name = "Observaciones")
     private String observaciones;
+
+    @Column(name = "Motivo_Cancelacion", columnDefinition = "TEXT")
+    private String motivoCancelacion;
+
+    @Column(name = "Fecha_Actualizacion", insertable = false, updatable = false)
+    private LocalDateTime fechaActualizacion;
 
     @Column(name = "ID_Mascota", nullable = false)
     private Integer idMascota;
