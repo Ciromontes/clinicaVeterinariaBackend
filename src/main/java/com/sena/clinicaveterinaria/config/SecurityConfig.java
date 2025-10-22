@@ -37,21 +37,49 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         // Endpoints de autenticación
                         .requestMatchers("/api/auth/**").permitAll()
-                        // Endpoints de citas con roles específicos
+
+                        // ============================================
+                        // ENDPOINTS DE CITAS
+                        // ============================================
+                        // Mis citas: Todos los roles autenticados
+                        .requestMatchers("/api/citas/mis-citas").authenticated()
+                        // Agendar cita: Todos los roles (principalmente CLIENTE)
+                        .requestMatchers("/api/citas/agendar").authenticated()
+                        // Citas de hoy: VETERINARIO y ADMIN
                         .requestMatchers("/api/citas/hoy").hasAnyRole("VETERINARIO", "ADMIN")
-                        .requestMatchers("/api/citas/*/estado").hasAnyRole("VETERINARIO", "ADMIN")
-                        // CLIENTES pueden ver el historial completo de sus mascotas
-                        .requestMatchers("/api/historias/mascota/*/completo").hasAnyRole("CLIENTE", "VETERINARIO", "ADMIN")
-                        // VETERINARIOS y ADMIN pueden agregar entradas médicas
+                        // Actualizar estado: SOLO VETERINARIO (es su responsabilidad)
+                        .requestMatchers("/api/citas/*/estado").hasRole("VETERINARIO")
+                        // Ver todas las citas (GET /api/citas): SOLO VETERINARIO y ADMIN
+                        .requestMatchers("/api/citas").hasAnyRole("VETERINARIO", "ADMIN")
+                        // Crear, actualizar, eliminar citas específicas: VETERINARIO y ADMIN
+                        .requestMatchers("/api/citas/**").hasAnyRole("VETERINARIO", "ADMIN")
+
+                        // ============================================
+                        // ENDPOINTS DE HISTORIAS CLÍNICAS
+                        // ============================================
+                        // Ver historial completo: Todos los roles (con validación en el servicio)
+                        .requestMatchers("/api/historias/mascota/*/completo").authenticated()
+                        // Agregar entradas: VETERINARIO y ADMIN
                         .requestMatchers("/api/historias/**").hasAnyRole("VETERINARIO", "ADMIN")
-                        // ADMIN puede gestionar usuarios (activar/desactivar)
+
+                        // ============================================
+                        // ENDPOINTS DE USUARIOS
+                        // ============================================
+                        // Gestionar estado de usuarios: SOLO ADMIN
                         .requestMatchers("/api/usuarios/*/estado").hasRole("ADMIN")
                         .requestMatchers("/api/usuarios/**").hasAnyRole("ADMIN", "VETERINARIO", "CLIENTE")
-                        // Todos los otros endpoints de API requieren autenticación
+
+                        // ============================================
+                        // OTROS ENDPOINTS DE API
+                        // ============================================
+                        // Mascotas, veterinarios, clientes, tratamientos: Requieren autenticación
                         .requestMatchers("/api/**").authenticated()
-                        // Archivos estáticos y frontend SPA - SOLO RUTAS ESPECÍFICAS
+
+                        // ============================================
+                        // FRONTEND Y ARCHIVOS ESTÁTICOS
+                        // ============================================
                         .requestMatchers("/", "/index.html", "/assets/**", "/static/**", "/*.js", "/*.css", "/vite.svg").permitAll()
-                        // Todo lo demás requiere autenticación (no redirigir a SPA)
+                        // Todo lo demás requiere autenticación
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

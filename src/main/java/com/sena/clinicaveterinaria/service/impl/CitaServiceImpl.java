@@ -163,6 +163,20 @@ public class CitaServiceImpl implements CitaService {
         return citas;
     }
 
+    // ✅ NUEVO MÉTODO: Obtener TODAS las citas de hoy (para ADMIN)
+    @Override
+    public List<Cita> findTodasLasCitasHoy() {
+        log.debug("Servicio: Buscando TODAS las citas del día");
+
+        LocalDate hoy = LocalDate.now();
+        List<Cita> citas = citaRepository.findByFechaCita(hoy);
+
+        log.info("Servicio: {} citas encontradas en total para la fecha {}",
+                citas.size(), hoy);
+
+        return citas;
+    }
+
     // ✅ NUEVO MÉTODO: Actualizar estado de cita
     @Override
     public Cita actualizarEstado(Integer idCita, String nuevoEstado, String emailVeterinario) {

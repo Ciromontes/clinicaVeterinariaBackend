@@ -11,7 +11,8 @@ public interface CitaService {
     List<Cita> findCitasByUsuarioEmail(String email);
     Cita agendarCita(Cita cita, String emailUsuario);
 
-    // ✅ NUEVOS MÉTODOS PARA VETERINARIO
+    // ✅ MÉTODOS PARA CITAS DE HOY
     List<Cita> findCitasHoyByVeterinario(String emailVeterinario);
+    List<Cita> findTodasLasCitasHoy(); // Para ADMIN - Ver todas las citas del día
     Cita actualizarEstado(Integer idCita, String nuevoEstado, String emailVeterinario);
 }

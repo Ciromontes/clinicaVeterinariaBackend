@@ -5,6 +5,7 @@ import com.sena.clinicaveterinaria.service.CitaService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,7 +25,9 @@ public class CitaController {
         this.service = service;
     }
 
+    // ✅ Solo ADMIN y VETERINARIO pueden ver todas las citas (coordinación)
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
     public ResponseEntity<List<Cita>> listar() {
         log.info("GET /api/citas - Listando todas las citas");
         try {
@@ -133,22 +136,50 @@ public class CitaController {
         }
     }
 
-    // ✅ NUEVO ENDPOINT: Obtener citas del día para veterinario
+    // ✅ ENDPOINT: Obtener citas del día
+    // VETERINARIO: Ve solo SUS citas
+    // ADMIN: Ve TODAS las citas del día
     @GetMapping("/hoy")
-    public ResponseEntity<List<Cita>> getCitasHoy(Authentication authentication) {
+    public ResponseEntity<?> getCitasHoy(Authentication authentication) {
         String username = authentication.getName();
-        log.info("GET /api/citas/hoy - Veterinario: {}", username);
+        log.info("GET /api/citas/hoy - Usuario: {}", username);
 
         try {
-            List<Cita> citas = service.findCitasHoyByVeterinario(username);
-            log.info("Citas de hoy para veterinario {}: {} encontradas", username, citas.size());
+            // Obtener el rol del usuario desde el Authentication
+            String rol = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(a -> a.getAuthority())
+                    .orElse("");
+
+            log.debug("Rol del usuario {}: {}", username, rol);
+
+            List<Cita> citas;
+
+            // Si es ADMIN, devolver TODAS las citas de hoy
+            if (rol.equals("ROLE_ADMIN")) {
+                log.info("ADMIN solicitando todas las citas de hoy");
+                citas = service.findTodasLasCitasHoy();
+                log.info("Total de citas de hoy (todos los veterinarios): {}", citas.size());
+            }
+            // Si es VETERINARIO, devolver solo SUS citas
+            else if (rol.equals("ROLE_VETERINARIO")) {
+                log.info("VETERINARIO solicitando sus citas de hoy");
+                citas = service.findCitasHoyByVeterinario(username);
+                log.info("Citas de hoy para veterinario {}: {}", username, citas.size());
+            }
+            // Otros roles no tienen acceso
+            else {
+                log.warn("Usuario {} con rol {} intentó acceder a citas de hoy", username, rol);
+                return ResponseEntity.status(403).body("Acceso denegado. Solo ADMIN y VETERINARIO pueden ver citas de hoy");
+            }
+
             return ResponseEntity.ok(citas);
         } catch (RuntimeException e) {
             log.warn("Validación fallida al obtener citas de hoy para {}: {}", username, e.getMessage());
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             log.error("Error al obtener citas de hoy para {}: {}", username, e.getMessage(), e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError().body("Error al obtener citas de hoy");
         }
     }
 

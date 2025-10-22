@@ -1,7 +1,9 @@
 package com.sena.clinicaveterinaria.service.impl;
 
+import com.sena.clinicaveterinaria.model.HistoriaClinica;
 import com.sena.clinicaveterinaria.model.Mascota;
 import com.sena.clinicaveterinaria.model.Usuario;
+import com.sena.clinicaveterinaria.repository.HistoriaClinicaRepository;
 import com.sena.clinicaveterinaria.repository.MascotaRepository;
 import com.sena.clinicaveterinaria.repository.UsuarioRepository;
 import com.sena.clinicaveterinaria.service.MascotaService;
@@ -20,11 +22,14 @@ public class MascotaServiceImpl implements MascotaService {
 
     private final MascotaRepository mascotaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final HistoriaClinicaRepository historiaClinicaRepository;
 
     public MascotaServiceImpl(MascotaRepository mascotaRepository,
-                              UsuarioRepository usuarioRepository) {
+                              UsuarioRepository usuarioRepository,
+                              HistoriaClinicaRepository historiaClinicaRepository) {
         this.mascotaRepository = mascotaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.historiaClinicaRepository = historiaClinicaRepository;
     }
 
     @Override
@@ -53,9 +58,30 @@ public class MascotaServiceImpl implements MascotaService {
         log.debug("Servicio: Guardando mascota - Nombre={}, Especie={}",
                 mascota.getNombre(), mascota.getEspecie());
 
+        // Verificar si es una mascota nueva (sin ID)
+        boolean esMascotaNueva = (mascota.getIdMascota() == null);
+
+        // Guardar la mascota
         Mascota mascotaGuardada = mascotaRepository.save(mascota);
         log.info("Servicio: Mascota guardada exitosamente - ID={}, Nombre={}",
                 mascotaGuardada.getIdMascota(), mascotaGuardada.getNombre());
+
+        // Si es una mascota nueva, crear su historia clínica automáticamente
+        if (esMascotaNueva) {
+            try {
+                HistoriaClinica historiaClinica = new HistoriaClinica();
+                historiaClinica.setIdMascota(mascotaGuardada.getIdMascota());
+                // fechaCreacion se establece automáticamente con @PrePersist
+                historiaClinicaRepository.save(historiaClinica);
+                log.info("Servicio: Historia clínica creada automáticamente para mascota ID={}",
+                        mascotaGuardada.getIdMascota());
+            } catch (Exception e) {
+                log.error("Servicio: Error al crear historia clínica para mascota ID={}: {}",
+                        mascotaGuardada.getIdMascota(), e.getMessage());
+                // No lanzamos la excepción para no bloquear la creación de la mascota
+            }
+        }
+
         return mascotaGuardada;
     }
 

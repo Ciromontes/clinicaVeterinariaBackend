@@ -98,27 +98,46 @@ Content-Type: application/json
 }
 ```
 
+**Nota:** Ahora usa `idCliente` directamente como número, es más simple.
+
 ---
 
 ### 📅 2. CITAS
 
-#### Listar todas las citas
+#### Listar todas las citas (ADMIN/VETERINARIO)
 ```
 GET http://localhost:8080/api/citas
 Authorization: Bearer {TOKEN}
 ```
 
-#### Citas de hoy (SOLO VETERINARIO/ADMIN)
+**Comportamiento por rol:**
+- **ADMIN**: Ve TODAS las citas (supervisión)
+- **VETERINARIO**: Ve TODAS las citas (coordinación)
+- **CLIENTE**: Solo puede ver las citas de sus mascotas (mediante endpoint específico)
+
+#### Citas de hoy (VETERINARIO/ADMIN)
 ```
 GET http://localhost:8080/api/citas/hoy
 Authorization: Bearer {TOKEN}
 ```
 
-**Nota:** Debes iniciar sesión como veterinario:
+**Comportamiento por rol:**
+- **VETERINARIO**: Ve solo SUS citas de hoy (agenda personal)
+- **ADMIN**: Ve TODAS las citas de hoy (supervisión general)
+
+**Login como VETERINARIO:**
 ```json
 {
   "email": "ana.vet@clinicaveterinaria.com",
   "password": "vet123"
+}
+```
+
+**Login como ADMIN:**
+```json
+{
+  "email": "admin@clinicaveterinaria.com",
+  "password": "admin123"
 }
 ```
 
@@ -139,17 +158,21 @@ Content-Type: application/json
 }
 ```
 
-#### Actualizar estado de cita (SOLO VETERINARIO/ADMIN)
+#### Actualizar estado de cita (SOLO VETERINARIO)
 ```
 PUT http://localhost:8080/api/citas/1/estado
 Authorization: Bearer {TOKEN}
 Content-Type: application/json
 
 {
-  "estadoCita": "Completada",
-  "observaciones": "Cita realizada exitosamente"
+  "estado": "Completada"
 }
 ```
+
+**⚠️ IMPORTANTE:** 
+- Solo el VETERINARIO asignado a la cita puede actualizar su estado
+- ADMIN NO puede actualizar estados (es responsabilidad del veterinario)
+- Para saber qué citas puede actualizar cada veterinario, ejecuta el script SQL: `IDENTIFICAR_CITAS_VETERINARIO.sql`
 
 ---
 
@@ -371,4 +394,289 @@ GROUP BY hc.ID_Historia, m.Nombre;
 5. 🚀 Desplegar en Azure
 
 **IMPORTANTE:** Una vez confirmes que todo funciona, haremos commit y push a Git.
+
+---
+
+## 🧪 GUÍA PASO A PASO DE PRUEBAS
+
+### 📊 PREPARACIÓN: Identificar datos de prueba
+
+Primero, ejecuta este script SQL en MySQL para ver qué datos tienes disponibles:
+
+```sql
+-- Ejecuta el archivo: IDENTIFICAR_CITAS_VETERINARIO.sql
+-- O copia estos comandos en MySQL:
+
+-- Ver todas las citas de HOY
+SELECT c.ID_Cita, c.Fecha_Cita, c.Hora_Cita, c.Estado_Cita, c.Motivo,
+       m.Nombre as Mascota, v.Nombre as Veterinario, v.Correo
+FROM cita c
+JOIN mascota m ON c.ID_Mascota = m.ID_Mascota
+JOIN veterinario v ON c.ID_Veterinario = v.ID_Veterinario
+WHERE c.Fecha_Cita = CURDATE();
+
+-- Si NO hay citas para hoy, crea una:
+INSERT INTO cita (Fecha_Cita, Hora_Cita, Duracion_Minutos, Motivo, Estado_Cita, ID_Mascota, ID_Veterinario)
+VALUES (CURDATE(), '09:00:00', 30, 'Vacunación de prueba', 'Programada', 1, 3);
+```
+
+---
+
+### 🔐 PRUEBAS COMO ADMIN
+
+#### 1. Login como ADMIN
+```
+POST http://localhost:8080/api/auth/login
+Body: {"email": "admin@clinicaveterinaria.com", "password": "admin123"}
+```
+✅ Copia el TOKEN recibido
+
+#### 2. Ver TODAS las citas de hoy (Supervisión)
+```
+GET http://localhost:8080/api/citas/hoy
+Authorization: Bearer {TOKEN_ADMIN}
+```
+✅ **Esperado:** Ver TODAS las citas de hoy (de todos los veterinarios)
+
+#### 3. Crear una nueva cita
+```
+POST http://localhost:8080/api/citas
+Authorization: Bearer {TOKEN_ADMIN}
+Body:
+{
+  "fechaCita": "2025-10-25",
+  "horaCita": "14:30:00",
+  "duracionMinutos": 30,
+  "motivo": "Control general",
+  "idMascota": 1,
+  "idVeterinario": 3
+}
+```
+✅ **Esperado:** Cita creada exitosamente
+
+#### 4. Ver historial completo de cualquier mascota
+```
+GET http://localhost:8080/api/historias/mascota/1/completo
+Authorization: Bearer {TOKEN_ADMIN}
+```
+✅ **Esperado:** Historial completo de la mascota (ADMIN puede ver todas las historias para supervisión)
+
+#### 5. Listar todas las mascotas
+```
+GET http://localhost:8080/api/mascotas
+Authorization: Bearer {TOKEN_ADMIN}
+```
+✅ **Esperado:** Lista completa de mascotas
+
+#### 6. Intentar actualizar estado de cita (Debe fallar)
+```
+PUT http://localhost:8080/api/citas/1/estado
+Authorization: Bearer {TOKEN_ADMIN}
+Body: {"estado": "Completada"}
+```
+❌ **Esperado:** 403 Forbidden (Solo VETERINARIO puede actualizar estados)
+
+---
+
+### 👨‍⚕️ PRUEBAS COMO VETERINARIO (Dra. Ana)
+
+#### 1. Login como VETERINARIO
+```
+POST http://localhost:8080/api/auth/login
+Body: {"email": "ana.vet@clinicaveterinaria.com", "password": "vet123"}
+```
+✅ Copia el TOKEN recibido
+
+#### 2. Ver TODAS las citas (Coordinación)
+```
+GET http://localhost:8080/api/citas
+Authorization: Bearer {TOKEN_VETERINARIO}
+```
+✅ **Esperado:** Ver TODAS las citas del sistema (para coordinación entre veterinarios)
+
+#### 3. Ver solo MIS citas de hoy (Agenda personal)
+```
+GET http://localhost:8080/api/citas/hoy
+Authorization: Bearer {TOKEN_VETERINARIO}
+```
+✅ **Esperado:** Solo citas asignadas a la Dra. Ana para HOY (ID_Veterinario = 3)
+
+**📝 Nota:** Si no aparecen citas, crea una en MySQL:
+```sql
+INSERT INTO cita (Fecha_Cita, Hora_Cita, Duracion_Minutos, Motivo, Estado_Cita, ID_Mascota, ID_Veterinario)
+VALUES (CURDATE(), '10:00:00', 30, 'Consulta general', 'Programada', 1, 3);
+```
+
+#### 4. Crear una nueva cita
+```
+POST http://localhost:8080/api/citas
+Authorization: Bearer {TOKEN_VETERINARIO}
+Body:
+{
+  "fechaCita": "2025-10-26",
+  "horaCita": "11:00:00",
+  "duracionMinutos": 30,
+  "motivo": "Vacunación antirrábica",
+  "idMascota": 2,
+  "idVeterinario": 3
+}
+```
+✅ **Esperado:** Cita creada exitosamente
+
+#### 5. Actualizar estado de MI cita
+Primero, identifica una cita que pertenezca a la Dra. Ana (ID_Veterinario = 3):
+```sql
+SELECT ID_Cita FROM cita WHERE ID_Veterinario = 3 AND Estado_Cita = 'Programada' LIMIT 1;
+```
+
+Luego actualiza:
+```
+PUT http://localhost:8080/api/citas/{ID_CITA}/estado
+Authorization: Bearer {TOKEN_VETERINARIO}
+Body: {"estado": "Completada"}
+```
+✅ **Esperado:** Cita actualizada exitosamente
+
+#### 6. Intentar actualizar cita de OTRO veterinario (Debe fallar)
+```
+PUT http://localhost:8080/api/citas/15/estado
+Authorization: Bearer {TOKEN_VETERINARIO}
+Body: {"estado": "Completada"}
+```
+❌ **Esperado:** "No puede modificar citas de otro veterinario"
+
+#### 7. Ver historial completo de cualquier mascota
+```
+GET http://localhost:8080/api/historias/mascota/1/completo
+Authorization: Bearer {TOKEN_VETERINARIO}
+```
+✅ **Esperado:** Historial completo (VETERINARIO puede ver todas las historias para atención médica)
+
+#### 8. Agregar entrada a historia clínica
+```
+POST http://localhost:8080/api/historias/1/entrada
+Authorization: Bearer {TOKEN_VETERINARIO}
+Body:
+{
+  "descripcion": "Control rutinario. Mascota en excelente estado.",
+  "observaciones": "Continuar con dieta actual",
+  "pesoActual": 26.5,
+  "temperatura": 38.2,
+  "frecuenciaCardiaca": 120
+}
+```
+✅ **Esperado:** Entrada agregada exitosamente
+
+---
+
+### 👤 PRUEBAS COMO CLIENTE
+
+#### 1. Login como CLIENTE
+```
+POST http://localhost:8080/api/auth/login
+Body: {"email": "lucia.cliente@clinicaveterinaria.com", "password": "cliente123"}
+```
+✅ Copia el TOKEN recibido
+
+#### 2. Ver solo MIS mascotas
+```
+GET http://localhost:8080/api/mascotas/mias
+Authorization: Bearer {TOKEN_CLIENTE}
+```
+✅ **Esperado:** Solo mascotas que pertenecen a Lucía
+
+#### 3. Ver historial de MI mascota
+```
+GET http://localhost:8080/api/historias/mascota/1/completo
+Authorization: Bearer {TOKEN_CLIENTE}
+```
+✅ **Esperado:** Historial completo (si la mascota le pertenece)
+❌ **Esperado:** "No tiene permiso" (si la mascota NO le pertenece)
+
+#### 4. Agendar una cita
+```
+POST http://localhost:8080/api/citas/agendar
+Authorization: Bearer {TOKEN_CLIENTE}
+Body:
+{
+  "fechaCita": "2025-10-27",
+  "horaCita": "15:00:00",
+  "motivo": "Consulta general",
+  "idMascota": 1,
+  "idVeterinario": 3
+}
+```
+✅ **Esperado:** Cita agendada exitosamente
+
+---
+
+## 📊 RESUMEN DE PERMISOS
+
+| Acción | ADMIN | VETERINARIO | CLIENTE |
+|--------|-------|-------------|---------|
+| Ver TODAS las citas | ✅ Supervisión | ✅ Coordinación | ❌ Solo las suyas |
+| Ver citas de hoy | ✅ Todas | ✅ Solo las suyas | ❌ |
+| Crear citas | ✅ | ✅ | ✅ (agendar) |
+| Actualizar estado de cita | ❌ | ✅ Solo las suyas | ❌ |
+| Ver TODAS las historias clínicas | ✅ Supervisión | ✅ Atención médica | ❌ Solo las suyas |
+| Agregar entradas médicas | ✅ | ✅ | ❌ |
+| Ver todas las mascotas | ✅ | ✅ | ❌ Solo las suyas |
+| Crear mascotas | ✅ | ✅ | ✅ |
+| Gestionar usuarios | ✅ | ❌ | ❌ |
+
+---
+
+## 🔍 COMANDOS ÚTILES PARA LOGS
+
+Ver logs del backend en tiempo real:
+```powershell
+docker logs clinica-backend -f
+```
+
+Ver últimos 50 logs:
+```powershell
+docker logs clinica-backend --tail 50
+```
+
+Ver solo errores:
+```powershell
+docker logs clinica-backend 2>&1 | Select-String -Pattern "ERROR"
+```
+
+Ver logs de un endpoint específico:
+```powershell
+docker logs clinica-backend 2>&1 | Select-String -Pattern "/api/citas/hoy"
+```
+
+---
+
+## ✅ CHECKLIST FINAL DE PRUEBAS
+
+### Como ADMIN
+- [ ] Login exitoso
+- [ ] Ver TODAS las citas (supervisión) ✅
+- [ ] Ver todas las citas de hoy (supervisión) ✅
+- [ ] Crear nueva cita ✅
+- [ ] Ver historial de cualquier mascota ✅
+- [ ] Listar todas las mascotas ✅
+- [ ] NO puede actualizar estado de citas ❌ (correcto, es responsabilidad del veterinario)
+
+### Como VETERINARIO
+- [ ] Login exitoso
+- [ ] Ver TODAS las citas (coordinación) ✅
+- [ ] Ver solo SUS citas de hoy (agenda personal) ✅
+- [ ] Crear nueva cita ✅
+- [ ] Actualizar estado de SU cita ✅
+- [ ] NO puede actualizar citas de otro vet ❌ (correcto)
+- [ ] Ver historial de cualquier mascota (atención médica) ✅
+- [ ] Agregar entrada a historia clínica ✅
+
+### Como CLIENTE
+- [ ] Login exitoso
+- [ ] Ver solo SUS mascotas ✅
+- [ ] Ver historial de SU mascota ✅
+- [ ] NO puede ver mascotas de otros ❌ (correcto)
+- [ ] Agendar cita para su mascota ✅
+- [ ] NO puede ver todas las citas ❌ (correcto)
+
 

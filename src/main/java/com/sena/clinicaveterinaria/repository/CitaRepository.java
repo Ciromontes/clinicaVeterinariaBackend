@@ -11,7 +11,8 @@ import java.util.List;
 public interface CitaRepository extends JpaRepository<Cita, Integer> {
     List<Cita> findByIdMascotaIn(List<Integer> idMascotas);
 
-    // ✅ NUEVOS MÉTODOS PARA VETERINARIO
+    // ✅ MÉTODOS PARA OBTENER CITAS POR FECHA
     List<Cita> findByIdVeterinarioAndFechaCita(Integer idVeterinario, LocalDate fecha);
+    List<Cita> findByFechaCita(LocalDate fecha); // Para ADMIN - Ver todas las citas de una fecha
     List<Cita> findByIdVeterinario(Integer idVeterinario);
 }

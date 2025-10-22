@@ -115,32 +115,58 @@ public class HistoriaClinicaServiceImpl implements HistoriaClinicaService {
         log.debug("Servicio: Obteniendo historial completo de mascota ID={} para usuario {}",
                 idMascota, emailUsuario);
 
-        // Validar que el usuario sea cliente
+        // Validar que el usuario exista
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario);
-        if (usuario == null || usuario.getIdCliente() == null) {
-            log.warn("Servicio: Usuario {} no es cliente válido", emailUsuario);
+        if (usuario == null) {
+            log.warn("Servicio: Usuario {} no encontrado", emailUsuario);
             throw new RuntimeException("Usuario no autorizado");
         }
 
-        // Validar que la mascota exista y pertenezca al cliente
+        // Validar que la mascota exista
         Mascota mascota = mascotaRepository.findById(idMascota).orElse(null);
         if (mascota == null) {
             log.warn("Servicio: Mascota ID={} no encontrada", idMascota);
             throw new RuntimeException("Mascota no encontrada");
         }
 
-        if (!mascota.getCliente().getIdCliente().equals(usuario.getIdCliente())) {
-            log.warn("Servicio: Usuario {} intenta acceder a historial de mascota que no le pertenece (Mascota ID={})",
-                    emailUsuario, idMascota);
-            throw new RuntimeException("No tiene permiso para ver esta mascota");
+        // Obtener el rol del usuario
+        String rol = usuario.getRol();
+        log.debug("Servicio: Usuario {} tiene rol {}", emailUsuario, rol);
+
+        // VALIDACIÓN POR ROL:
+        // - ADMIN: Puede ver TODAS las historias (supervisión, reportes)
+        // - VETERINARIO: Puede ver TODAS las historias (atención médica)
+        // - CLIENTE: Solo puede ver historias de SUS mascotas
+        if ("CLIENTE".equals(rol)) {
+            if (usuario.getIdCliente() == null) {
+                log.warn("Servicio: Usuario {} es CLIENTE pero no tiene ID de cliente", emailUsuario);
+                throw new RuntimeException("Usuario no autorizado");
+            }
+
+            if (!mascota.getCliente().getIdCliente().equals(usuario.getIdCliente())) {
+                log.warn("Servicio: Cliente {} intenta acceder a historial de mascota que no le pertenece (Mascota ID={})",
+                        emailUsuario, idMascota);
+                throw new RuntimeException("No tiene permiso para ver esta mascota");
+            }
+            log.info("Servicio: CLIENTE {} accediendo a historial de su mascota ID={}", emailUsuario, idMascota);
+        }
+        else if ("VETERINARIO".equals(rol)) {
+            log.info("Servicio: VETERINARIO {} accediendo a historial de mascota ID={} (acceso completo)", emailUsuario, idMascota);
+        }
+        else if ("ADMIN".equals(rol)) {
+            log.info("Servicio: ADMIN {} accediendo a historial de mascota ID={} (acceso completo)", emailUsuario, idMascota);
+        }
+        else {
+            log.warn("Servicio: Usuario {} tiene rol desconocido: {}", emailUsuario, rol);
+            throw new RuntimeException("Usuario no autorizado");
         }
 
         // Obtener historia y entradas
         HistoriaClinica historia = obtenerPorMascota(idMascota);
         List<EntradaHistoria> entradas = obtenerEntradas(historia.getIdHistoria());
 
-        log.info("Servicio: Historial completo obtenido - Mascota ID={}, Cliente ID={}, {} entradas encontradas",
-                idMascota, usuario.getIdCliente(), entradas.size());
+        log.info("Servicio: Historial completo obtenido - Mascota ID={}, Usuario={}, Rol={}, {} entradas encontradas",
+                idMascota, emailUsuario, rol, entradas.size());
 
         return Map.of(
                 "historia", historia,
