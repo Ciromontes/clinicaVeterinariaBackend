@@ -8,6 +8,7 @@ import com.sena.clinicaveterinaria.service.UsuarioService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,10 +20,13 @@ public class AuthController {
 
     private final UsuarioService usuarioService;
     private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder; // ✅ Inyectar encoder
 
-    public AuthController(UsuarioService usuarioService, JwtService jwtService) {
+    // ✅ Constructor con PasswordEncoder
+    public AuthController(UsuarioService usuarioService, JwtService jwtService, PasswordEncoder passwordEncoder) {
         this.usuarioService = usuarioService;
         this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/login")
@@ -37,7 +41,8 @@ public class AuthController {
                 return ResponseEntity.status(401).body("Credenciales inválidas");
             }
 
-            if (!usuario.getPassword().equals(loginRequest.getPassword())) {
+            // ✅ CORRECCIÓN: Usar BCrypt para comparar contraseñas
+            if (!passwordEncoder.matches(loginRequest.getPassword(), usuario.getPassword())) {
                 log.warn("Login fallido - Contraseña incorrecta para: {}", loginRequest.getEmail());
                 return ResponseEntity.status(401).body("Credenciales inválidas");
             }
