@@ -298,3 +298,46 @@ apache.conf
 # - API keys
 # - Tokens de acceso
 # ================================================================
+# Azure deployment scripts (local only)
+*.ps1
+*.bat
+*.sh
+
+# Environment files
+.env.azure.*
+.env.local
+.env.production
+
+# Documentation files (development)
+*.md
+!README.md
+
+# Docker compose for local development
+docker-compose.azure-local.yml
+docker-compose.local.yml
+
+# Dockerfile variants (keep only main ones)
+Dockerfile.unified
+nginx-unified.conf
+
+# Logs and temporary files
+logs-*.txt
+mysql-connection.txt
+temp_*.html
+q
+
+# Maven wrapper scripts
+.mvn/*.ps1
+
+# Properties backup
+properties*.txt
+
+# Script history
+ScriptFileProcessHistory/
+
+# SQL scripts for local setup
+limpiar-*.ps1
+crear-mysql*.ps1
+configurar-*.ps1
+verificar-*.ps1
+verify-*.ps1
