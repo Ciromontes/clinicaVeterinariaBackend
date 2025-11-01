@@ -23,7 +23,7 @@ public class Usuario {
     private String password;
 
     @Column(nullable = false)
-    private String rol; // "ADMIN", "VETERINARIO", "RECEPCIONISTA", "CLIENTE"
+    private String rol; // "ADMIN", "VETERINARIO", "CLIENTE"
 
     @Column(nullable = false)
     private Boolean activo = true;
